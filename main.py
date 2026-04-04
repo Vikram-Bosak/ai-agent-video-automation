@@ -40,7 +40,6 @@ def main():
 
     if not folder_id:
         logger.info("No unprocessed folders found")
-        send_telegram_report("📭 No unprocessed folders found in Google Drive")
         return
 
     logger.info(f"Found folder: {folder_name} ({folder_id})")
@@ -50,7 +49,6 @@ def main():
 
     if not local_files:
         logger.error("No files downloaded")
-        send_telegram_report("❌ No files found in folder")
         return
 
     downloaded_path = config.DOWNLOAD_DIR
