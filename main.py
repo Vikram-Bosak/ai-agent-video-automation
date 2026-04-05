@@ -107,8 +107,7 @@ def is_in_upload_window():
         if start_m <= current_m < end_m:
             return True, f"{wh:02d}:{wm:02d} EST"
             
-    # return False, None
-    return True, "LIVE_TEST_BYPASS (Manual Trigger)"
+    return False, None
 
 def get_next_scheduled_run():
     h, m = get_est_now()
