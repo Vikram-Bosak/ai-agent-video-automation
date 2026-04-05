@@ -195,6 +195,12 @@ def main():
             logger.info(f"MAIN: Instagram response: {ig_result}")
             if ig_result.get("success"):
                 upload_results["Instagram"] = ig_result
+            else:
+                upload_results["Instagram"] = ig_result
+                logger.error("MAIN: All Instagram hosts exhausted — moving to ERROR folder")
+                from src.drive_manager import move_to_error
+                move_to_error(folder_id, folder_name, reason=ig_result.get("message", "unknown"))
+                return  # Stop processing — folder is in ERROR
         except Exception as e:
             logger.error(f"MAIN: Instagram workflow failed: {e}")
             upload_results["Instagram"] = {"success": False, "message": str(e)}
@@ -205,6 +211,7 @@ def main():
 
     mark_folder_processed(folder_id, folder_name)
     logger.info(f"Marked folder as processed")
+
 
     elapsed = time.time() - start_time
     elapsed_mins = max(1, int(elapsed / 60))

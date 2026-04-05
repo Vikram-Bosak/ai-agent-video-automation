@@ -124,6 +124,30 @@ def mark_folder_processed(folder_id, folder_name):
     print(f"Moved folder '{folder_name}' to DONE folder as '{new_name}'.")
 
 
+def move_to_error(folder_id, folder_name, reason="upload_failed"):
+    """
+    Moves the folder to the ERROR subfolder if all upload attempts fail.
+    """
+    service = get_drive_service()
+    from config import ERROR_FOLDER_ID, GOOGLE_DRIVE_FOLDER_ID
+
+    new_name = f"ERROR_{folder_name}"
+
+    file = service.files().get(fileId=folder_id, fields='parents').execute()
+    previous_parents = ",".join(file.get('parents'))
+
+    service.files().update(
+        fileId=folder_id,
+        body={"name": new_name},
+        removeParents=previous_parents,
+        addParents=ERROR_FOLDER_ID,
+        fields='id, parents'
+    ).execute()
+
+    print(f"⚠️ Moved '{folder_name}' to ERROR folder. Reason: {reason}")
+
+
+
 from googleapiclient.http import MediaFileUpload
 
 def upload_ig_temp(file_path):
