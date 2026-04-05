@@ -1,0 +1,79 @@
+2026-04-05 05:00:02,040 - __main__ - INFO - Starting video automation system
+2026-04-05 05:00:02,040 - __main__ - INFO - Current time is in US Window: LIVE_TEST_BYPASS (Manual Trigger). Proceeding...
+2026-04-05 05:00:02,093 - googleapiclient.discovery_cache - INFO - file_cache is only supported with oauth2client<4.0.0
+2026-04-05 05:00:02,556 - __main__ - INFO - No unprocessed folders found
+2026-04-05 05:30:02,365 - __main__ - INFO - Starting video automation system
+2026-04-05 05:30:02,366 - __main__ - INFO - Current time is in US Window: LIVE_TEST_BYPASS (Manual Trigger). Proceeding...
+2026-04-05 05:30:02,452 - googleapiclient.discovery_cache - INFO - file_cache is only supported with oauth2client<4.0.0
+2026-04-05 05:30:02,954 - __main__ - INFO - No unprocessed folders found
+DEBUG: Service Account: service_account.json
+DEBUG: Drive query: '1GIv27Jmdul8uqkmSpc0FFQpwCaenYTza' in parents and trashed=false
+DEBUG: Checking folder: How does a blister form, and how does it heal
+DEBUG: Checking folder: How does a blister form, and how does it heal
+DEBUG: Checking folder: What happens to your cells when you get a sunburn
+DEBUG: Checking folder: What happens inside when you crack your knuckles (1)
+DEBUG: Checking folder: What happens inside when you crack your knuckles (1)
+DEBUG: Checking folder: How is cataract surgery performed on the eye
+DEBUG: Checking folder: How is cataract surgery performed on the eye
+2026-04-05 06:00:01,548 - __main__ - INFO - Starting video automation system
+2026-04-05 06:00:01,548 - __main__ - INFO - Current time is in US Window: LIVE_TEST_BYPASS (Manual Trigger). Proceeding...
+2026-04-05 06:00:01,617 - googleapiclient.discovery_cache - INFO - file_cache is only supported with oauth2client<4.0.0
+2026-04-05 06:00:02,132 - __main__ - INFO - Found folder: What happens inside when you crack your knuckles (1) (14uzKoBs9qbEtFOlg3hLDy0rpt3iTV-GK)
+2026-04-05 06:00:02,193 - googleapiclient.discovery_cache - INFO - file_cache is only supported with oauth2client<4.0.0
+2026-04-05 06:00:09,559 - __main__ - INFO - Downloaded 6 files
+2026-04-05 06:01:36,716 - __main__ - INFO - Processed video: /home/crduser/ai-agent-video-edit-with-seo/output/final_video.mp4
+2026-04-05 06:02:06,895 - src.content_generator - WARNING - Failed to parse JSON from NVIDIA API: HTTPSConnectionPool(host='integrate.api.nvidia.com', port=443): Read timed out. (read timeout=30)
+2026-04-05 06:02:06,897 - __main__ - INFO - Generated content: What happens inside when you crack your knuckles (1)
+2026-04-05 06:02:06,921 - googleapiclient.discovery_cache - INFO - file_cache is only supported with oauth2client<4.0.0
+2026-04-05 06:02:18,817 - src.uploaders.facebook - INFO - Video uploaded to Facebook: 953783967032955 -> https://www.facebook.com/watch/?v=953783967032955
+2026-04-05 06:02:18,820 - __main__ - INFO - MAIN: Triggering Instagram upload...
+2026-04-05 06:03:03,102 - __main__ - INFO - MAIN: Instagram response: {'success': True, 'media_id': '17993424305941044', 'url': 'https://www.instagram.com/reel/17993424305941044'}
+2026-04-05 06:03:03,206 - googleapiclient.discovery_cache - INFO - file_cache is only supported with oauth2client<4.0.0
+2026-04-05 06:03:04,946 - __main__ - INFO - Marked folder as processed
+2026-04-05 06:03:05,803 - __main__ - INFO - Telegram report sent. Response: {'ok': True, 'result': {'message_id': 96, 'from': {'id': 8730709075, 'is_bot': True, 'first_name': 'X-Ray Blueprin', 'username': 'XRayBlueprintbot'}, 'chat': {'id': 6595054125, 'first_name': 'BlockXHunter', 'username': 'BlockXHunter', 'type': 'private'}, 'date': 1775361785, 'text': '🎉 Video Processing Complete\n\n📹 Video: What happens inside when you crack your knuckles (1)\n⏱️ Duration: 0m 40s\n⏱️ Process Time: 183.4s\n📂 Raw Drive: Open Folder\n\n🚀 Upload Links:\n• YouTube: https://youtube.com/shorts/duzdmQv_cRo\n• Instagram: https://www.instagram.com/reel/17993424305941044\n• Facebook: https://www.facebook.com/watch/?v=953783967032955\n\n📊 Stats:\n• Total 24h: 5/5 videos\n⏭️ Next Run: 07:30 AM EST (Tomorrow)', 'entities': [{'offset': 3, 'length': 25, 'type': 'bold'}, {'offset': 33, 'length': 6, 'type': 'bold'}, {'offset': 96, 'length': 9, 'type': 'bold'}, {'offset': 116, 'length': 13, 'type': 'bold'}, {'offset': 140, 'length': 10, 'type': 'bold'}, {'offset': 151, 'length': 11, 'type': 'text_link', 'url': 'https://drive.google.com/drive/folders/14uzKoBs9qbEtFOlg3hLDy0rpt3iTV-GK'}, {'offset': 167, 'length': 13, 'type': 'bold'}, {'offset': 183, 'length': 8, 'type': 'bold'}, {'offset': 192, 'length': 38, 'type': 'url'}, {'offset': 233, 'length': 10, 'type': 'bold'}, {'offset': 244, 'length': 48, 'type': 'url'}, {'offset': 295, 'length': 9, 'type': 'bold'}, {'offset': 305, 'length': 49, 'type': 'url'}, {'offset': 359, 'length': 6, 'type': 'bold'}, {'offset': 393, 'length': 9, 'type': 'bold'}], 'link_preview_options': {'is_disabled': True}}}
+2026-04-05 06:03:05,803 - __main__ - INFO - Automation complete in 183.40s
+DEBUG: Found folder to process: What happens inside when you crack your knuckles (1)
+Downloading 05.mp4...
+Downloading 04.mp4...
+Downloading 03.mp4...
+Downloading 02.mp4...
+Downloading 01.mp4...
+Downloading download (1).wav...
+Processing 5 video files with voiceover: /home/crduser/ai-agent-video-edit-with-seo/downloads/5_download (1).wav
+Video processing complete: /home/crduser/ai-agent-video-edit-with-seo/output/final_video.mp4
+Uploading /home/crduser/ai-agent-video-edit-with-seo/output/final_video.mp4 to YouTube...
+YouTube upload complete.
+IG: Starting upload for /home/crduser/ai-agent-video-edit-with-seo/output/final_video.mp4
+IG: Uploading to temporary host (Catbox)...
+IG: Temporary URL created: https://files.catbox.moe/w2fogf.mp4
+IG: Creating media container...
+IG: Container created: 18068440646354356. Checking status...
+IG: Status Check 1: IN_PROGRESS
+IG: Status Check 2: IN_PROGRESS
+IG: Status Check 3: IN_PROGRESS
+IG: Status Check 4: IN_PROGRESS
+IG: Status Check 5: IN_PROGRESS
+IG: Status Check 6: IN_PROGRESS
+IG: Status Check 7: FINISHED
+IG: Publishing reel...
+IG SUCCESS: Uploaded Reels ID: 17993424305941044
+Moved folder 'What happens inside when you crack your knuckles (1)' to DONE folder as 'DONE_What happens inside when you crack your knuckles (1)'.
+--- Telegram Message Debug ---
+🎉 <b>Video Processing Complete</b>
+
+📹 <b>Video:</b> What happens inside when you crack your knuckles (1)
+⏱️ <b>Duration:</b> 0m 40s
+⏱️ <b>Process Time:</b> 183.4s
+📂 <b>Raw Drive:</b> <a href="https://drive.google.com/drive/folders/14uzKoBs9qbEtFOlg3hLDy0rpt3iTV-GK">Open Folder</a>
+
+🚀 <b>Upload Links:</b>
+• <b>YouTube:</b> https://youtube.com/shorts/duzdmQv_cRo
+• <b>Instagram:</b> https://www.instagram.com/reel/17993424305941044
+• <b>Facebook:</b> https://www.facebook.com/watch/?v=953783967032955
+
+📊 <b>Stats:</b>
+• Total 24h: 5/5 videos
+⏭️ <b>Next Run:</b> 07:30 AM EST (Tomorrow)
+------------------------------
+Telegram response for 6595054125: 200 - {"ok":true,"result":{"message_id":96,"from":{"id":8730709075,"is_bot":true,"first_name":"X-Ray Blueprin","username":"XRayBlueprintbot"},"chat":{"id":6595054125,"first_name":"BlockXHunter","username":"BlockXHunter","type":"private"},"date":1775361785,"text":"\ud83c\udf89 Video Processing Complete\n\n\ud83d\udcf9 Video: What happens inside when you crack your knuckles (1)\n\u23f1\ufe0f Duration: 0m 40s\n\u23f1\ufe0f Process Time: 183.4s\n\ud83d\udcc2 Raw Drive: Open Folder\n\n\ud83d\ude80 Upload Links:\n\u2022 YouTube: https://youtube.com/shorts/duzdmQv_cRo\n\u2022 Instagram: https://www.instagram.com/reel/17993424305941044\n\u2022 Facebook: https://www.facebook.com/watch/?v=953783967032955\n\n\ud83d\udcca Stats:\n\u2022 Total 24h: 5/5 videos\n\u23ed\ufe0f Next Run: 07:30 AM EST (Tomorrow)","entities":[{"offset":3,"length":25,"type":"bold"},{"offset":33,"length":6,"type":"bold"},{"offset":96,"length":9,"type":"bold"},{"offset":116,"length":13,"type":"bold"},{"offset":140,"length":10,"type":"bold"},{"offset":151,"length":11,"type":"text_link","url":"https://drive.google.com/drive/folders/14uzKoBs9qbEtFOlg3hLDy0rpt3iTV-GK"},{"offset":167,"length":13,"type":"bold"},{"offset":183,"length":8,"type":"bold"},{"offset":192,"length":38,"type":"url"},{"offset":233,"length":10,"type":"bold"},{"offset":244,"length":48,"type":"url"},{"offset":295,"length":9,"type":"bold"},{"offset":305,"length":49,"type":"url"},{"offset":359,"length":6,"type":"bold"},{"offset":393,"length":9,"type":"bold"}],"link_preview_options":{"is_disabled":true}}}
+Telegram report sent to 6595054125

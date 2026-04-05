@@ -189,13 +189,15 @@ def main():
             upload_results["Facebook"] = {"success": False, "message": str(e)}
 
     if config.ENABLE_INSTAGRAM_UPLOAD:
+        logger.info("MAIN: Triggering Instagram upload...")
         try:
-            ig_result = upload_instagram(
-                str(video_file), content
-            )
-            upload_results["Instagram"] = ig_result
+            from src.uploaders.instagram import upload_instagram
+            ig_result = upload_instagram(str(video_file), content)
+            logger.info(f"MAIN: Instagram response: {ig_result}")
+            if ig_result.get("success"):
+                upload_results["Instagram"] = ig_result
         except Exception as e:
-            logger.error(f"Instagram upload failed: {e}")
+            logger.error(f"MAIN: Instagram workflow failed: {e}")
             upload_results["Instagram"] = {"success": False, "message": str(e)}
 
     # Record success if at least one upload worked
@@ -211,12 +213,12 @@ def main():
     # Final Simple Message (No complex HTML)
     # Capture Links
     yt_url = upload_results.get("YouTube") if isinstance(upload_results.get("YouTube"), str) else upload_results.get("YouTube", {}).get("url", "N/A")
+    fb_url = upload_results.get("Facebook", {}).get("url", "N/A")
     ig_url = upload_results.get("Instagram", {}).get("url", "N/A")
-    fb_url = "N/A" # Facebook API usually doesn't return a direct public URL easily without extra permissions
     
     # Final Status Summary
     yt_status = "✅ OK" if yt_url != "N/A" else "❌ Fail" if "YouTube" in upload_results else "⏭️ Skip"
-    fb_status = "✅ OK" if upload_results.get("Facebook", {}).get("success") else "❌ Fail" if "Facebook" in upload_results else "⏭️ Skip"
+    fb_status = "✅ OK" if fb_url != "N/A" else "❌ Fail" if "Facebook" in upload_results else "⏭️ Skip"
     ig_status = "✅ OK" if ig_url != "N/A" else "❌ Fail" if "Instagram" in upload_results else "⏭️ Skip"
     
     # Escape HTML special characters
@@ -239,18 +241,19 @@ def main():
         "🚀 <b>Upload Links:</b>\n"
         f"• <b>YouTube:</b> {yt_url}\n"
         f"• <b>Instagram:</b> {ig_url}\n"
-        f"• <b>Facebook:</b> {fb_status}\n\n"
+        f"• <b>Facebook:</b> {fb_url}\n\n"
         "📊 <b>Stats:</b>\n"
         f"• Total 24h: {total_24h}/5 videos\n"
         f"⏭️ <b>Next Run:</b> {get_next_scheduled_run()}"
     )
     
-    print("--- Telegram Message Debug ---")
-    print(message)
-    print("------------------------------")
+    # Commented out as requested by the user: "mujha nahi need hai"
+    # print("--- Telegram Message Debug ---")
+    # print(message)
+    # print("------------------------------")
     
-    response = send_telegram_report(message)
-    logger.info(f"Telegram report sent. Response: {response}")
+    # response = send_telegram_report(message)
+    # logger.info(f"Telegram report sent. Response: {response}")
     logger.info(f"Automation complete in {elapsed:.2f}s")
 
 

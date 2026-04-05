@@ -5,8 +5,9 @@ from config import OUTPUT_DIR, DOWNLOAD_DIR, TARGET_WIDTH, TARGET_HEIGHT
 
 def process_video(input_files):
     """
-    Takes a list of file paths (videos), merges them,
-    scales to vertical (1080x1920), and exports a single final_video.mp4.
+    Takes a list of file paths. Finds video clips and a voiceover (.wav).
+    Concatenates videos with their audio, mixes in the voiceover,
+    scales to vertical (1080x1920), and exports final_video.mp4.
     """
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     final_output_path = os.path.join(OUTPUT_DIR, "final_video.mp4")
@@ -14,93 +15,69 @@ def process_video(input_files):
     if not input_files:
         raise ValueError("No input files provided to process_video.")
 
-    video_files = [f for f in input_files if f.lower().endswith((".mp4", ".mov"))]
+    video_files = sorted([f for f in input_files if f.lower().endswith((".mp4", ".mov"))])
+    audio_files = [f for f in input_files if f.lower().endswith(".wav")]
+    voiceover_path = audio_files[0] if audio_files else None
 
     if not video_files:
         raise ValueError("No video files found to process.")
 
-    print(f"Processing {len(video_files)} video files...")
+    print(f"Processing {len(video_files)} video files with voiceover: {voiceover_path}")
 
-    if len(video_files) == 1:
-        single_video = video_files[0]
-        try:
-            stream = ffmpeg.input(single_video)
-            stream = ffmpeg.filter(
-                stream,
-                "scale",
-                TARGET_WIDTH,
-                TARGET_HEIGHT,
-                force_original_aspect_ratio="decrease",
-            )
-            stream = ffmpeg.filter(
-                stream,
-                "pad",
-                TARGET_WIDTH,
-                TARGET_HEIGHT,
-                "(ow-iw)/2",
-                "(oh-ih)/2",
-                "black",
-            )
-            ffmpeg.output(
-                stream, final_output_path, vcodec="libx264", acodec="aac"
-            ).overwrite_output().run(capture_stdout=True, capture_stderr=True)
-        except ffmpeg.Error as e:
-            print(f"FFmpeg error: {e.stderr.decode()}")
-            raise
-        print(f"Video processing complete: {final_output_path}")
-        return final_output_path
+    # Prepare input streams
+    inputs = [ffmpeg.input(v) for v in video_files]
+    
+    # Each video input has [v] and [a]. We need to concat BOTH.
+    # We use the filter_complex for safe concatenation of mixed sources.
+    streams = []
+    for i in inputs:
+        streams.append(i.video)
+        streams.append(i.audio)
 
-    concat_file_path = os.path.join(DOWNLOAD_DIR, "concat.txt")
-    with open(concat_file_path, "w") as f:
-        for vf in video_files:
-            f.write(f"file '{os.path.abspath(vf)}'\n")
+    # Concat video and audio streams
+    concat = ffmpeg.concat(*streams, v=1, a=1).node
+    v_stream = concat[0]
+    a_stream = concat[1]
 
-    temp_merged = os.path.join(OUTPUT_DIR, "temp_merged.mp4")
+    # Handle Voiceover mixing
+    if voiceover_path:
+        vo_input = ffmpeg.input(voiceover_path).audio
+        # amix: duration=longest ensures we don't cut off if voiceover is longer than clips
+        # or vice versa (usually voiceover defines the length)
+        a_stream = ffmpeg.filter([a_stream, vo_input], 'amix', duration='longest')
 
-    try:
-        ffmpeg.input(concat_file_path, format="concat", safe=0).output(
-            temp_merged, c="copy"
-        ).overwrite_output().run(capture_stdout=True, capture_stderr=True)
-    except ffmpeg.Error as e:
-        print(f"Concat copy failed, re-encoding: {e.stderr.decode()}")
-        ffmpeg.input(concat_file_path, format="concat", safe=0).output(
-            temp_merged, vcodec="libx264", acodec="aac"
-        ).overwrite_output().run(capture_stdout=True, capture_stderr=True)
+    # Scale and Pad Visuals
+    v_stream = ffmpeg.filter(
+        v_stream,
+        "scale",
+        TARGET_WIDTH,
+        TARGET_HEIGHT,
+        force_original_aspect_ratio="decrease",
+    )
+    v_stream = ffmpeg.filter(
+        v_stream,
+        "pad",
+        TARGET_WIDTH,
+        TARGET_HEIGHT,
+        "(ow-iw)/2",
+        "(oh-ih)/2",
+        "black",
+    )
 
     try:
-        stream = ffmpeg.input(temp_merged)
-        stream = ffmpeg.filter(
-            stream,
-            "scale",
-            TARGET_WIDTH,
-            TARGET_HEIGHT,
-            force_original_aspect_ratio="decrease",
-        )
-        stream = ffmpeg.filter(
-            stream,
-            "pad",
-            TARGET_WIDTH,
-            TARGET_HEIGHT,
-            "(ow-iw)/2",
-            "(oh-ih)/2",
-            "black",
-        )
+        # Final Output
         ffmpeg.output(
-            stream, final_output_path, vcodec="libx264", acodec="aac"
-        ).overwrite_output().run(capture_stdout=True, capture_stderr=True)
-    except ffmpeg.Error as e:
-        print(f"Scale failed: {e.stderr.decode()}")
-        ffmpeg.input(temp_merged).output(
+            v_stream,
+            a_stream,
             final_output_path,
             vcodec="libx264",
             acodec="aac",
-            **{"s": f"{TARGET_WIDTH}x{TARGET_HEIGHT}"},
-        ).overwrite_output().run()
-
-    if os.path.exists(temp_merged):
-        os.remove(temp_merged)
-    if os.path.exists(concat_file_path):
-        os.remove(concat_file_path)
+            strict="experimental"
+        ).overwrite_output().run(capture_stdout=True, capture_stderr=True)
+    except ffmpeg.Error as e:
+        err_msg = e.stderr.decode() if e.stderr else "Unknown FFmpeg error"
+        print(f"FFmpeg error: {err_msg}")
+        raise
 
     print(f"Video processing complete: {final_output_path}")
     return final_output_path

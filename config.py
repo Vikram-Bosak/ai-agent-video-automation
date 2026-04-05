@@ -31,6 +31,7 @@ GOOGLE_SERVICE_ACCOUNT_FILE = os.getenv(
     "GOOGLE_SERVICE_ACCOUNT_FILE", "service_account.json"
 )
 GOOGLE_DRIVE_FOLDER_ID = os.getenv("GOOGLE_DRIVE_FOLDER_ID")
+DONE_FOLDER_ID = os.getenv("DONE_FOLDER_ID", "1cSG-oqex-qLqf2SN2LJhwwDU6htjz0VH")
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY")

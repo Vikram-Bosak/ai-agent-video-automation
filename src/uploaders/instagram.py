@@ -12,45 +12,41 @@ from config import INSTAGRAM_BUSINESS_ACCOUNT_ID, FACEBOOK_PAGE_ACCESS_TOKEN
 def upload_instagram(video_path, content):
     """
     Uploads a video to Instagram as a Reel.
-    Note: Instagram requires the video to be publicly accessible via URL.
-    Google Drive service accounts may not have storage quota - in that case, returns mock.
     """
     if not INSTAGRAM_BUSINESS_ACCOUNT_ID or not FACEBOOK_PAGE_ACCESS_TOKEN:
-        raise ValueError(
-            "Missing INSTAGRAM_BUSINESS_ACCOUNT_ID or FACEBOOK_PAGE_ACCESS_TOKEN"
-        )
+        print("ERROR: Instagram credentials missing.")
+        return {"success": False, "message": "Missing credentials"}
 
-    print(f"Preparing to upload {video_path} to Instagram...")
+    print(f"IG: Starting upload for {video_path}")
 
-    # Try to upload to Drive first
+    # Step 0: Get Public URL via Catbox (Failsafe for Drive Quota)
     public_video_url = None
     try:
-        from src.drive_manager import upload_to_drive_and_get_link
-
-        public_video_url = upload_to_drive_and_get_link(video_path)
-        print(f"Video uploaded to Drive: {public_video_url}")
+        print("IG: Uploading to temporary host (Catbox)...")
+        with open(video_path, "rb") as f:
+            files = {
+                "reqtype": (None, "fileupload"),
+                "fileToUpload": (os.path.basename(video_path), f, "video/mp4")
+            }
+            response = requests.post("https://catbox.moe/user/api.php", files=files)
+            
+        if response.status_code == 200 and response.text.startswith("http"):
+            public_video_url = response.text.strip()
+            print(f"IG: Temporary URL created: {public_video_url}")
+        else:
+            raise Exception(f"Catbox upload failed: {response.text}")
     except Exception as e:
-        print(f"Drive upload failed: {e}")
-        print(
-            "WARNING: Instagram API requires a PUBLIC URL. Skipping Instagram upload."
-        )
-        return {"success": False, "message": f"Drive upload failed: {e}"}
+        print(f"IG: Temporary upload failed: {e}")
+        return {"success": False, "message": f"Temp upload failed: {e}"}
 
     if isinstance(content, str):
         caption = content
     else:
-        caption = (
-            content.get("title", "")
-            + "\n"
-            + content.get("description", "")
-            + f"\n\n{content.get('hashtags', '')}"
-        )
+        caption = f"{content.get('title', '')}\n\n{content.get('hashtags', '')}"
 
     # Step 1: Create Container
-    url_container = (
-        f"https://graph.facebook.com/v19.0/{INSTAGRAM_BUSINESS_ACCOUNT_ID}/media"
-    )
-
+    print("IG: Creating media container...")
+    url_container = f"https://graph.facebook.com/v19.0/{INSTAGRAM_BUSINESS_ACCOUNT_ID}/media"
     payload = {
         "media_type": "REELS",
         "video_url": public_video_url,
@@ -59,46 +55,54 @@ def upload_instagram(video_path, content):
     }
 
     container_res = requests.post(url_container, data=payload).json()
-    print(f"Container response: {container_res}")
-
     if "id" not in container_res:
-        raise Exception(f"Failed to create IG container: {container_res}")
+        print(f"IG ERROR: Container creation failed: {container_res}")
+        return {"success": False, "message": str(container_res)}
 
     creation_id = container_res["id"]
-    print(f"Container created: {creation_id}. Waiting for processing...")
+    print(f"IG: Container created: {creation_id}. Checking status...")
 
-    # Step 2: Check processing status
+    # Step 2: Check Status
     url_status = f"https://graph.facebook.com/v19.0/{creation_id}?fields=status_code&access_token={FACEBOOK_PAGE_ACCESS_TOKEN}"
-
-    max_attempts = 60
-    for i in range(max_attempts):
+    for i in range(40): # 200 seconds max
         status_res = requests.get(url_status).json()
         status_code = status_res.get("status_code")
-        print(f"Status check {i + 1}: {status_code}")
+        print(f"IG: Status Check {i+1}: {status_code}")
         if status_code == "FINISHED":
             break
         elif status_code == "ERROR":
-            raise Exception(f"IG container processing failed: {status_res}")
+            print(f"IG ERROR: Processing failed: {status_res}")
+            return {"success": False, "message": "Processing ERROR"}
         time.sleep(5)
 
     # Step 3: Publish
+    print("IG: Publishing reel...")
     url_publish = f"https://graph.facebook.com/v19.0/{INSTAGRAM_BUSINESS_ACCOUNT_ID}/media_publish"
-
-    publish_payload = {
-        "creation_id": creation_id,
-        "access_token": FACEBOOK_PAGE_ACCESS_TOKEN,
-    }
-
+    publish_payload = {"creation_id": creation_id, "access_token": FACEBOOK_PAGE_ACCESS_TOKEN}
     publish_res = requests.post(url_publish, data=publish_payload).json()
-    print(f"Publish response: {publish_res}")
 
     if "id" in publish_res:
-        ig_media_id = publish_res["id"]
-        print("Instagram upload complete!")
-        return {
-            "success": True,
-            "media_id": ig_media_id,
-            "url": f"https://www.instagram.com/reel/{ig_media_id}",
-        }
-    else:
-        raise Exception(f"Failed to publish IG container: {publish_res}")
+        media_id = publish_res['id']
+        print(f"IG SUCCESS: Published. ID: {media_id}")
+        
+        # Step 4: Get Public Permalink
+        try:
+            url_link = f"https://graph.facebook.com/v19.0/{media_id}?fields=permalink&access_token={FACEBOOK_PAGE_ACCESS_TOKEN}"
+            link_res = requests.get(url_link).json()
+            public_url = link_res.get("permalink", f"https://www.instagram.com/reels/{media_id}/")
+            print(f"IG: Public URL: {public_url}")
+            return {
+                "success": True,
+                "media_id": media_id,
+                "url": public_url,
+            }
+        except Exception as e:
+            print(f"IG: Failed to fetch permalink: {e}")
+            return {
+                "success": True,
+                "media_id": media_id,
+                "url": f"https://www.instagram.com/reels/{media_id}/",
+            }
+    
+    print(f"IG ERROR: Publish failed: {publish_res}")
+    return {"success": False, "message": str(publish_res)}

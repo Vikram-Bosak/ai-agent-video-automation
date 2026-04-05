@@ -28,11 +28,14 @@ def upload_video(video_file, title, description):
         result = response.json()
 
         video_id = result.get("id")
-        logger.info(f"Video uploaded to Facebook: {video_id}")
+        # Construct a public URL (Note: Privacy settings on the page must allow this)
+        video_url = f"https://www.facebook.com/watch/?v={video_id}"
+        logger.info(f"Video uploaded to Facebook: {video_id} -> {video_url}")
         return {
             "success": True,
             "message": f"Video ID: {video_id}",
             "video_id": video_id,
+            "url": video_url,
         }
 
     except requests.RequestException as e:
