@@ -1,6 +1,7 @@
 import os
 import io
 from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseUpload
 from googleapiclient.http import MediaIoBaseDownload
 from google.oauth2 import service_account
 from config import (
@@ -40,19 +41,9 @@ def pick_next_folder():
 
     for folder in folders:
         folder_name = folder["name"].upper()
-        if "PROCESSED" in folder_name:
+        if folder_name.startswith(PROCESSED_FOLDER_PREFIX.upper()):
             continue
         return folder["id"], folder["name"]
-
-    # Fallback: Check if there are videos directly in the root folder
-    root_query = f"'{GOOGLE_DRIVE_FOLDER_ID}' in parents and mimeType contains 'video' and trashed=false"
-    root_results = (
-        service.files().list(q=root_query, fields="files(id, name)").execute()
-    )
-    videos = root_results.get("files", [])
-
-    if videos:
-        return GOOGLE_DRIVE_FOLDER_ID, "Root_Videos"
 
     return None, None
 
@@ -105,3 +96,47 @@ def mark_folder_processed(folder_id, folder_name):
     file_metadata = {"name": new_name}
     service.files().update(fileId=folder_id, body=file_metadata).execute()
     print(f"Marked folder '{folder_name}' as processed ({new_name}).")
+
+
+def upload_to_drive_and_get_link(file_path, folder_id=None):
+    """
+    Uploads a file to Google Drive and returns a public URL.
+    """
+    service = get_drive_service()
+
+    file_name = os.path.basename(file_path)
+    file_metadata = {
+        "name": file_name,
+        "mimeType": "video/mp4",
+    }
+
+    # Use the main drive folder if no specific folder
+    target_folder = folder_id if folder_id else GOOGLE_DRIVE_FOLDER_ID
+    file_metadata["parents"] = [target_folder]
+
+    with io.FileIO(file_path, "rb") as f:
+        media = MediaIoBaseUpload(f, mimetype="video/mp4", resumable=True)
+
+    file = (
+        service.files()
+        .create(
+            body=file_metadata,
+            media_body=media,
+            fields="id",
+        )
+        .execute()
+    )
+
+    file_id = file.get("id")
+
+    # Make publicly accessible
+    service.permissions().create(
+        fileId=file_id,
+        body={"type": "anyone", "role": "reader"},
+    ).execute()
+
+    # Get public URL
+    public_url = f"https://drive.google.com/uc?export=download&id={file_id}"
+
+    print(f"Uploaded {file_name} to Drive: {public_url}")
+    return public_url

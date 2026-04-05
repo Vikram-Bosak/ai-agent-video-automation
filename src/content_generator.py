@@ -34,7 +34,7 @@ def generate_content(folder_name):
     prompt = f"Generate optimized metadata for a video about: {folder_name}"
     
     payload = {
-        "model": "google/gemma-4-31b-it",
+        "model": "meta/llama-3.1-405b-instruct",
         "messages": [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": prompt}
@@ -43,11 +43,10 @@ def generate_content(folder_name):
         "temperature": 0.7,
         "top_p": 0.95,
         "stream": False,
-        "chat_template_kwargs": {"enable_thinking": False},
     }
 
     try:
-        response = requests.post(invoke_url, headers=headers, json=payload)
+        response = requests.post(invoke_url, headers=headers, json=payload, timeout=30)
         response.raise_for_status()
         result = response.json()
         
