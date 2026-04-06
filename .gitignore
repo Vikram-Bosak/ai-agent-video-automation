@@ -7,10 +7,12 @@ venv/
 .env.local
 *.json
 !requirements.txt
-!processed_folders.json
 
 downloads/
 output/
 temp_*.mp4
+
+automation.log
+upload_tracker.json
 
 .DS_Store
