@@ -35,13 +35,29 @@ jobs:
       
       - name: Set up Google Service Account
         run: |
-          echo "${{ secrets.GOOGLE_SERVICE_ACCOUNT_FILE }}" > service_account.json
-          if [ ! -s service_account.json ]; then echo "Error: GOOGLE_SERVICE_ACCOUNT_FILE secret is empty or missing" && exit 1; fi
+          if [ -n "${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}" ]; then
+            echo "${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}" > service_account.json
+          elif [ -n "${{ secrets.GOOGLE_SERVICE_ACCOUNT_FILE }}" ]; then
+            echo "${{ secrets.GOOGLE_SERVICE_ACCOUNT_FILE }}" > service_account.json
+          elif [ -n "${{ secrets.GOOGLE_CREDENTIALS }}" ]; then
+            echo "${{ secrets.GOOGLE_CREDENTIALS }}" > service_account.json
+          else
+            echo "❌ ERROR: Google Service Account secret not found! Please check secrets."
+            exit 1
+          fi
+          echo "✅ Google Service Account setup complete."
       
       - name: Set up YouTube OAuth
         run: |
-          echo "${{ secrets.YOUTUBE_TOKEN_FILE }}" > youtube_token.json
-          if [ ! -s youtube_token.json ]; then echo "Error: YOUTUBE_TOKEN_FILE secret is empty or missing" && exit 1; fi
+          if [ -n "${{ secrets.YOUTUBE_TOKEN_JSON }}" ]; then
+            echo "${{ secrets.YOUTUBE_TOKEN_JSON }}" > youtube_token.json
+          elif [ -n "${{ secrets.YOUTUBE_TOKEN_FILE }}" ]; then
+            echo "${{ secrets.YOUTUBE_TOKEN_FILE }}" > youtube_token.json
+          else
+            echo "❌ ERROR: YouTube Token secret not found! Please check secrets."
+            exit 1
+          fi
+          echo "✅ YouTube OAuth setup complete."
       
       - name: Run automation
         env:
