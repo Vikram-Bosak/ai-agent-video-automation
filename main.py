@@ -29,36 +29,94 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def get_upload_count_24h():
+def get_upload_tracker():
     tracker_file = Path("upload_tracker.json")
     if not tracker_file.exists():
-        return 0
+        return {"uploads": [], "window_history": {}}
     try:
         with open(tracker_file, "r") as f:
             data = json.load(f)
-
-        now = time.time()
-        # Keep only uploads from the last 24 hours
-        recent_uploads = [t for t in data.get("uploads", []) if now - t < 24 * 3600]
-
-        with open(tracker_file, "w") as f:
-            json.dump({"uploads": recent_uploads}, f)
-
-        return len(recent_uploads)
+            if not isinstance(data, dict):
+                return {"uploads": [], "window_history": {}}
+            if "uploads" not in data or not isinstance(data["uploads"], list):
+                data["uploads"] = []
+            if "window_history" not in data or not isinstance(data["window_history"], dict):
+                data["window_history"] = {}
+            return data
     except Exception as e:
         logger.error(f"Error reading tracker: {e}")
-        return 0
+        return {"uploads": [], "window_history": {}}
 
 
-def record_upload():
+def has_uploaded_in_window(window_name):
+    """
+    Checks if an upload has already occurred in the given window today (US Eastern).
+    """
+    import datetime
+    import pytz
+
+    try:
+        tz = pytz.timezone("US/Eastern")
+        today = datetime.datetime.now(tz).strftime("%Y-%m-%d")
+        data = get_upload_tracker()
+        history = data.get("window_history", {})
+        if not isinstance(history, dict):
+            return False
+        
+        window_list = history.get(today, [])
+        if not isinstance(window_list, list):
+            return False
+            
+        return window_name in window_list
+    except Exception as e:
+        logger.error(f"Error checking window history: {e}")
+        return False
+
+
+def get_upload_count_24h():
+    data = get_upload_tracker()
+    now = time.time()
+    
+    # Keep only uploads from the last 24 hours
+    uploads = data.get("uploads", [])
+    recent_uploads = [t for t in uploads if isinstance(t, (int, float)) and now - t < 24 * 3600]
+
+    # Clean up old window history (keep last 7 days)
+    history = data.get("window_history", {})
+    if isinstance(history, dict) and len(history) > 7:
+        sorted_dates = sorted(history.keys())
+        for old_date in sorted_dates[:-7]:
+            history.pop(old_date)
+
+    tracker_file = Path("upload_tracker.json")
+    with open(tracker_file, "w") as f:
+        json.dump({"uploads": recent_uploads, "window_history": history}, f)
+
+    return len(recent_uploads)
+
+
+def record_upload(window_name=None):
     tracker_file = Path("upload_tracker.json")
     try:
-        data = {"uploads": []}
-        if tracker_file.exists():
-            with open(tracker_file, "r") as f:
-                data = json.load(f)
-
+        data = get_upload_tracker()
         data["uploads"].append(time.time())
+
+        if window_name:
+            import datetime
+            import pytz
+
+            tz = pytz.timezone("US/Eastern")
+            today = datetime.datetime.now(tz).strftime("%Y-%m-%d")
+            
+            if "window_history" not in data or not isinstance(data["window_history"], dict):
+                data["window_history"] = {}
+            
+            if today not in data["window_history"] or not isinstance(data["window_history"][today], list):
+                data["window_history"][today] = []
+                
+            if window_name not in data["window_history"][today]:
+                data["window_history"][today].append(window_name)
+
         with open(tracker_file, "w") as f:
             json.dump(data, f)
     except Exception as e:
@@ -87,55 +145,55 @@ def get_est_now():
     import pytz
 
     try:
-        # Use pytz for accurate timezone - India Standard Time
-        ist = pytz.timezone("Asia/Kolkata")
-        now = datetime.datetime.now(ist)
+        # Use pytz for US Eastern Time
+        tz = pytz.timezone("US/Eastern")
+        now = datetime.datetime.now(tz)
         return now.hour, now.minute
     except:
-        # Fallback: UTC+5:30 for India (not just +5)
+        # Fallback to UTC-5 (Approximate for ET)
         utc_now = time.gmtime()
-        # Add 5 hours and 30 minutes
-        total_minutes = utc_now.tm_hour * 60 + utc_now.tm_min + 5 * 60 + 30
-        ist_hour = (total_minutes // 60) % 24
-        ist_min = total_minutes % 60
-        return ist_hour, ist_min
+        # UTC to ET is -5 hours
+        total_minutes = utc_now.tm_hour * 60 + utc_now.tm_min - 5 * 60
+        et_hour = (total_minutes // 60) % 24
+        et_min = total_minutes % 60
+        return et_hour, et_min
 
 
 def is_in_upload_window():
     """
-    Checks if current IST time is within one of the 5 windows:
-    1. 07:30 - 08:30 (Morning)
-    2. 09:30 - 10:30 (Mid-Morning)
-    3. 12:30 - 13:30 (Lunch)
-    4. 14:30 - 15:30 (Afternoon)
-    5. 16:30 - 17:30 (Evening)
+    Checks if current US Eastern time is within one of the 5 windows:
+    1. 08:30 (Morning)
+    2. 12:30 (Lunch)
+    3. 15:30 (Afternoon)
+    4. 19:00 (Prime)
+    5. 21:30 (Late Night)
     """
     h, m = get_est_now()
-    windows = [(7, 30), (9, 30), (12, 30), (14, 30), (16, 30)]
+    windows = [(8, 30), (12, 30), (15, 30), (19, 0), (21, 30)]
 
     for wh, wm in windows:
         # Start time in minutes
         start_m = wh * 60 + wm
-        # End time (1 hour later)
+        # End time (1 hour later window)
         end_m = start_m + 60
         # Current time in minutes
         current_m = h * 60 + m
 
         if start_m <= current_m < end_m:
-            return True, f"{wh:02d}:{wm:02d} IST"
+            return True, f"{wh:02d}:{wm:02d} ET"
 
     return False, None
 
 
 def get_next_scheduled_run():
     h, m = get_est_now()
-    windows = [(7, 30), (9, 30), (12, 30), (14, 30), (16, 30)]
+    windows = [(8, 30), (12, 30), (15, 30), (19, 0), (21, 30)]
     current_m = h * 60 + m
 
     for wh, wm in windows:
         if wh * 60 + wm > current_m:
-            return f"{wh:02d}:{wm:02d} IST"
-    return "07:30 AM IST (Tomorrow)"
+            return f"{wh:02d}:{wm:02d} ET"
+    return "08:30 ET (Tomorrow)"
 
 
 def main():
@@ -151,25 +209,23 @@ def main():
 
     bypass = os.getenv("FORCE_RUN", "false").lower() == "true"
 
-    # 1. Time Window Check
-    in_window, window_name = is_in_upload_window()
-    if not in_window and not bypass:
-        next_run = get_next_scheduled_run()
-        # logger.info(f"Not in a valid upload window. Next run at {next_run}. Skipping.")
-        return
-    elif bypass:
-        # logger.info("FORCE_RUN enabled - bypassing window check!")
-        pass
-
-    # logger.info(f"Current time is in US Window: {window_name}. Proceeding...")
-
-    # Rate Limit Check (Max 5 per 24h)
+    # Rate Limit Check
     upload_count = get_upload_count_24h()
     if upload_count >= 5:
-        # logger.warning(
-        #     f"Rate limit reached: {upload_count} uploads in last 24h. Skipping."
-        # )
+        logger.info(f"Daily rate limit reached ({upload_count}/5). Skipping.")
         return
+
+    # Time Window Check
+    in_window, window_name = is_in_upload_window()
+    if not in_window and not bypass:
+        logger.info(f"Not in a valid upload window. Next run at {get_next_scheduled_run()}.")
+        return
+
+    if in_window:
+        if has_uploaded_in_window(window_name) and not bypass:
+            logger.info(f"Already uploaded in window '{window_name}' today. Skipping.")
+            return
+        logger.info(f"Current window: {window_name}")
 
     folder_id, folder_name = pick_next_folder()
 
@@ -233,7 +289,7 @@ def main():
     if any(
         res.get("success") for res in upload_results.values() if isinstance(res, dict)
     ):
-        record_upload()
+        record_upload(window_name=window_name if in_window else None)
 
     mark_folder_processed(folder_id, folder_name)
     # logger.info(f"Marked folder as processed")
