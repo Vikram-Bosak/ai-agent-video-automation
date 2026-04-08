@@ -24,7 +24,12 @@ from src.uploaders.instagram import upload_instagram
 
 
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler("automation.log", mode="a", encoding="utf-8")
+    ]
 )
 logger = logging.getLogger(__name__)
 
@@ -169,7 +174,7 @@ def is_in_upload_window():
     5. 21:30 (Late Night)
     """
     h, m = get_est_now()
-    windows = [(8, 30), (12, 30), (15, 30), (19, 0), (21, 30)]
+    windows = [(8, 0), (12, 30), (15, 30), (19, 0), (21, 30)]
 
     for wh, wm in windows:
         # Start time in minutes
@@ -187,13 +192,13 @@ def is_in_upload_window():
 
 def get_next_scheduled_run():
     h, m = get_est_now()
-    windows = [(8, 30), (12, 30), (15, 30), (19, 0), (21, 30)]
+    windows = [(8, 0), (12, 30), (15, 30), (19, 0), (21, 30)]
     current_m = h * 60 + m
 
     for wh, wm in windows:
         if wh * 60 + wm > current_m:
             return f"{wh:02d}:{wm:02d} ET"
-    return "08:30 ET (Tomorrow)"
+    return "08:00 ET (Tomorrow)"
 
 
 def main():
@@ -212,13 +217,14 @@ def main():
     # Rate Limit Check
     upload_count = get_upload_count_24h()
     if upload_count >= 5:
-        logger.info(f"Daily rate limit reached ({upload_count}/5). Skipping.")
+        logger.info(f"Daily rate limit reached ({upload_count}/5). Stopping automation.")
         return
 
     # Time Window Check
     in_window, window_name = is_in_upload_window()
+    h, m = get_est_now()
     if not in_window and not bypass:
-        logger.info(f"Not in a valid upload window. Next run at {get_next_scheduled_run()}.")
+        logger.info(f"Current ET: {h:02d}:{m:02d}. Not in a valid upload window. Next run at {get_next_scheduled_run()}.")
         return
 
     if in_window:

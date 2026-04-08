@@ -81,21 +81,21 @@ def process_video(input_files):
         duration = info["duration"]
         has_audio = info["has_audio"]
 
-        # Video normalization: Scale, Pad, FPS 30, Format
+        # Video normalization: Scale, Pad, FPS 30, Format, SAR
+        # We force 1080x1920 (or target) for EVERY clip
         v_filter += (
             f"[{i}:v]scale={config.TARGET_WIDTH}:{config.TARGET_HEIGHT}:force_original_aspect_ratio=decrease,"
             f"pad={config.TARGET_WIDTH}:{config.TARGET_HEIGHT}:(ow-iw)/2:(oh-ih)/2,"
             f"fps=30,format=yuv420p,setsar=1[v{i}];"
         )
 
-        # Audio normalization: Ensure 44.1k/Stereo
+        # Audio normalization: Ensure 44.1k/Stereo/FLTP
         if has_audio:
             a_filter += f"[{i}:a]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo[a{i}];"
         else:
             # Generate silent audio matching EXACT duration of the video clip
-            # We use d={duration} to ensure it stops exactly with the video
-            v_filter += f"anullsrc=r=44100:cl=stereo:d={duration}[asilent{i}];"
-            a_filter += f"[asilent{i}]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo[a{i}];"
+            # Using anullsrc as a separate source
+            a_filter += f"anullsrc=r=44100:cl=stereo:d={duration},aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo[a{i}];"
 
         concat_map += f"[v{i}][a{i}]"
 
