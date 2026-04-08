@@ -8,6 +8,8 @@ on:
 jobs:
   automate:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     
     steps:
       - uses: actions/checkout@v4
@@ -26,19 +28,19 @@ jobs:
         run: pip install -r requirements.txt
       
       - name: Set up Google Service Account
-        env: |
+        env:
           GOOGLE_SERVICE_ACCOUNT_FILE: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_FILE }}
         run: |
           echo "$GOOGLE_SERVICE_ACCOUNT_FILE" > service_account.json
       
       - name: Set up YouTube OAuth
-        env: |
+        env:
           YOUTUBE_TOKEN_FILE: ${{ secrets.YOUTUBE_TOKEN_FILE }}
         run: |
           echo "$YOUTUBE_TOKEN_FILE" > youtube_token.json
       
       - name: Run automation
-        env: |
+        env:
           DRIVE_FOLDER_PREFIX: ${{ secrets.DRIVE_FOLDER_PREFIX }}
           PROCESSED_FOLDER_PREFIX: ${{ secrets.PROCESSED_FOLDER_PREFIX }}
           GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
@@ -53,3 +55,11 @@ jobs:
           ENABLE_FACEBOOK_UPLOAD: ${{ secrets.ENABLE_FACEBOOK_UPLOAD }}
           ENABLE_INSTAGRAM_UPLOAD: ${{ secrets.ENABLE_INSTAGRAM_UPLOAD }}
         run: python main.py
+
+      - name: Save State (Tracker & Logs)
+        run: |
+          git config --global user.name "AI Automation Bot"
+          git config --global user.email "bot@users.noreply.github.com"
+          git add upload_tracker.json automation.log || true
+          git commit -m "chore: update upload tracker and logs [skip ci]" || echo "No changes to commit"
+          git push || echo "No changes to push"
