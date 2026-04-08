@@ -1671,3 +1671,4 @@ ffmpeg._run.Error: ffmpeg error (see stderr output for detail)
 2026-04-08 18:12:05,540 - __main__ - INFO - Current ET: 14:12. Not in a valid upload window. Next run at 15:30 ET.
 2026-04-08 19:48:10,160 - __main__ - INFO - Current window: 15:30 ET
 2026-04-08 20:54:35,510 - __main__ - INFO - Current ET: 16:54. Not in a valid upload window. Next run at 19:00 ET.
+2026-04-08 21:52:08,351 - __main__ - INFO - Current ET: 17:52. Not in a valid upload window. Next run at 19:00 ET.
