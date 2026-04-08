@@ -32,10 +32,15 @@ def pick_next_folder():
     """
     Finds the first folder that isn't the DONE folder.
     """
+    import logging
+    logger = logging.getLogger(__name__)
+
     service = get_drive_service()
     from config import DONE_FOLDER_ID
 
     query = f"'{GOOGLE_DRIVE_FOLDER_ID}' in parents and trashed=false"
+    logger.info(f"Checking Google Drive parent folder: {GOOGLE_DRIVE_FOLDER_ID}")
+    
     results = (
         service.files()
         .list(
@@ -48,19 +53,24 @@ def pick_next_folder():
     )
 
     items = results.get("files", [])
+    logger.info(f"Found {len(items)} items in parent folder.")
 
     for item in items:
         if item["mimeType"] != "application/vnd.google-apps.folder":
             continue
 
+        # Skip specific system folders
         if item["id"] == DONE_FOLDER_ID:
             continue
 
         folder_name = item["name"]
-        # Even if they use TODO_ by habit, we pick it but the AI will clean it.
-        # print(f"DEBUG: Found folder to process: {folder_name}")
+        if folder_name.startswith("ERROR_"):
+            continue
+
+        logger.info(f"Candidate folder found: '{folder_name}' ({item['id']})")
         return item["id"], folder_name
 
+    logger.warning("No valid candidate folders found to process.")
     return None, None
 
 
@@ -101,8 +111,15 @@ def mark_folder_processed(folder_id, folder_name):
     """
     Moves the folder to the DONE subfolder and renames it.
     """
+    import logging
+    logger = logging.getLogger(__name__)
+
     service = get_drive_service()
     from config import DONE_FOLDER_ID, GOOGLE_DRIVE_FOLDER_ID
+
+    if not DONE_FOLDER_ID:
+        logger.error("DONE_FOLDER_ID is not configured! Cannot move folder.")
+        return
 
     # 1. Rename the folder (Remove TODO_ and add DONE_)
     clean_name = folder_name
@@ -112,43 +129,56 @@ def mark_folder_processed(folder_id, folder_name):
     new_name = f"{PROCESSED_FOLDER_PREFIX}{clean_name}"
 
     # 2. Move to DONE folder
-    # Get current parents to remove them
-    file = service.files().get(fileId=folder_id, fields="parents").execute()
-    previous_parents = ",".join(file.get("parents"))
+    try:
+        # Get current parents to remove them
+        file = service.files().get(fileId=folder_id, fields="parents").execute()
+        previous_parents = ",".join(file.get("parents"))
 
-    # Update metadata and move
-    service.files().update(
-        fileId=folder_id,
-        body={"name": new_name},
-        removeParents=previous_parents,
-        addParents=DONE_FOLDER_ID,
-        fields="id, parents",
-    ).execute()
-
-    # print(f"Moved folder '{folder_name}' to DONE folder as '{new_name}'.")
+        # Update metadata and move
+        service.files().update(
+            # ... existing update call ...
+            fileId=folder_id,
+            body={"name": new_name},
+            removeParents=previous_parents,
+            addParents=DONE_FOLDER_ID,
+            fields="id, parents",
+        ).execute()
+        logger.info(f"Successfully moved '{folder_name}' to DONE.")
+    except Exception as e:
+        logger.error(f"Failed to move folder to DONE: {e}")
 
 
 def move_to_error(folder_id, folder_name, reason="upload_failed"):
     """
     Moves the folder to the ERROR subfolder if all upload attempts fail.
     """
+    import logging
+    logger = logging.getLogger(__name__)
+
     service = get_drive_service()
     from config import ERROR_FOLDER_ID, GOOGLE_DRIVE_FOLDER_ID
 
+    if not ERROR_FOLDER_ID:
+        logger.error("ERROR_FOLDER_ID is not configured! Cannot move folder.")
+        return
+
     new_name = f"ERROR_{folder_name}"
 
-    file = service.files().get(fileId=folder_id, fields="parents").execute()
-    previous_parents = ",".join(file.get("parents"))
+    try:
+        file = service.files().get(fileId=folder_id, fields="parents").execute()
+        previous_parents = ",".join(file.get("parents"))
 
-    service.files().update(
-        fileId=folder_id,
-        body={"name": new_name},
-        removeParents=previous_parents,
-        addParents=ERROR_FOLDER_ID,
-        fields="id, parents",
-    ).execute()
+        service.files().update(
+            fileId=folder_id,
+            body={"name": new_name},
+            removeParents=previous_parents,
+            addParents=ERROR_FOLDER_ID,
+            fields="id, parents",
+        ).execute()
 
-    # print(f"⚠️ Moved '{folder_name}' to ERROR folder. Reason: {reason}")
+        logger.warning(f"Moved '{folder_name}' to ERROR folder. Reason: {reason}")
+    except Exception as e:
+        logger.error(f"Failed to move folder to ERROR: {e}")
 
 
 from googleapiclient.http import MediaFileUpload

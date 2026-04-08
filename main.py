@@ -229,152 +229,131 @@ def main():
 
     if in_window:
         if has_uploaded_in_window(window_name) and not bypass:
-            logger.info(f"Already uploaded in window '{window_name}' today. Skipping.")
+            logger.info(f"Already uploaded in window '{window_name}' today. Skipping scheduled run.")
             return
         logger.info(f"Current window: {window_name}")
 
-    folder_id, folder_name = pick_next_folder()
+    try:
+        logger.info("Searching for folder to process...")
+        folder_id, folder_name = pick_next_folder()
 
-    if not folder_id:
-        return
+        if not folder_id:
+            logger.info("No more folders left to process in Drive.")
+            return
 
-    local_files = download_folder_files(folder_id)
+        logger.info(f"Selected folder: '{folder_name}' ({folder_id})")
+        
+        logger.info(f"Downloading files from '{folder_name}'...")
+        local_files = download_folder_files(folder_id)
 
-    if not local_files:
-        return
+        if not local_files:
+            logger.warning(f"Folder '{folder_name}' is empty or has no valid video/audio files.")
+            logger.info(f"Moving empty folder '{folder_name}' to ERROR folder to prevent sticking.")
+            move_to_error(folder_id, folder_name, reason="empty_folder")
+            return
 
-    video_file = process_video(local_files)
+        logger.info(f"Successfully downloaded {len(local_files)} files. Starting video processing...")
+        video_file = process_video(local_files)
+        logger.info(f"Video processing complete: {video_file.name}")
 
-    content = generate_content(folder_name)
+        logger.info("Generating content metadata (SEO titles, descriptions)...")
+        content = generate_content(folder_name)
 
-    upload_results = {}
+        upload_results = {}
 
-    if config.ENABLE_YOUTUBE_UPLOAD:
-        try:
-            yt_result = upload_youtube(str(video_file), content)
-            upload_results["YouTube"] = yt_result
-        except Exception as e:
-            logger.error(f"YouTube upload failed: {e}")
-            upload_results["YouTube"] = {"success": False, "message": str(e)}
+        if config.ENABLE_YOUTUBE_UPLOAD:
+            logger.info("Initiating YouTube upload...")
+            try:
+                yt_result = upload_youtube(str(video_file), content)
+                upload_results["YouTube"] = yt_result
+                logger.info("YouTube upload complete.")
+            except Exception as e:
+                logger.error(f"YouTube upload failed: {e}")
+                upload_results["YouTube"] = {"success": False, "message": str(e)}
 
-    if config.ENABLE_FACEBOOK_UPLOAD:
-        try:
-            fb_result = upload_facebook(
-                str(video_file), content["title"], content["description"]
-            )
-            upload_results["Facebook"] = fb_result
-        except Exception as e:
-            logger.error(f"Facebook upload failed: {e}")
-            upload_results["Facebook"] = {"success": False, "message": str(e)}
-
-    if config.ENABLE_INSTAGRAM_UPLOAD:
-        # logger.info("MAIN: Triggering Instagram upload...")
-        try:
-            from src.uploaders.instagram import upload_instagram
-
-            ig_result = upload_instagram(str(video_file), content)
-            # logger.info(f"MAIN: Instagram response: {ig_result}")
-            if ig_result.get("success"):
-                upload_results["Instagram"] = ig_result
-            else:
-                upload_results["Instagram"] = ig_result
-                logger.error(
-                    "MAIN: All Instagram hosts exhausted — moving to ERROR folder"
+        if config.ENABLE_FACEBOOK_UPLOAD:
+            logger.info("Initiating Facebook upload...")
+            try:
+                fb_result = upload_facebook(
+                    str(video_file), content["title"], content["description"]
                 )
-                from src.drive_manager import move_to_error
+                upload_results["Facebook"] = fb_result
+                logger.info("Facebook upload complete.")
+            except Exception as e:
+                logger.error(f"Facebook upload failed: {e}")
+                upload_results["Facebook"] = {"success": False, "message": str(e)}
 
-                move_to_error(
-                    folder_id, folder_name, reason=ig_result.get("message", "unknown")
-                )
-                return  # Stop processing — folder is in ERROR
-        except Exception as e:
-            logger.error(f"MAIN: Instagram workflow failed: {e}")
-            upload_results["Instagram"] = {"success": False, "message": str(e)}
+        if config.ENABLE_INSTAGRAM_UPLOAD:
+            logger.info("Initiating Instagram upload...")
+            try:
+                from src.uploaders.instagram import upload_instagram
 
-    # Record success if at least one upload worked
-    if any(
-        res.get("success") for res in upload_results.values() if isinstance(res, dict)
-    ):
-        record_upload(window_name=window_name if in_window else None)
+                ig_result = upload_instagram(str(video_file), content)
+                if ig_result.get("success"):
+                    upload_results["Instagram"] = ig_result
+                    logger.info("Instagram upload complete.")
+                else:
+                    upload_results["Instagram"] = ig_result
+                    logger.error(f"Instagram upload failed: {ig_result.get('message')}")
+                    from src.drive_manager import move_to_error
+                    move_to_error(
+                        folder_id, folder_name, reason=ig_result.get("message", "unknown")
+                    )
+                    return  # Stop processing — folder moved to ERROR
+            except Exception as e:
+                logger.error(f"Instagram workflow failed: {e}")
+                upload_results["Instagram"] = {"success": False, "message": str(e)}
 
-    mark_folder_processed(folder_id, folder_name)
-    # logger.info(f"Marked folder as processed")
+        # Record success if at least one upload worked
+        if any(
+            res.get("success") for res in upload_results.values() if isinstance(res, dict)
+        ):
+            record_upload(window_name=window_name if in_window else None)
+            logger.info("Upload recorded in tracker.")
 
-    elapsed = time.time() - start_time
-    elapsed_mins = max(1, int(elapsed / 60))
+        logger.info(f"Marking folder '{folder_name}' as processed (moving to DONE)...")
+        mark_folder_processed(folder_id, folder_name)
+        logger.info(f"Folder '{folder_name}' successfully processed.")
 
-    # Final Simple Message (No complex HTML)
-    # Capture Links
-    yt_url = (
-        upload_results.get("YouTube")
-        if isinstance(upload_results.get("YouTube"), str)
-        else upload_results.get("YouTube", {}).get("url", "N/A")
-    )
-    fb_url = upload_results.get("Facebook", {}).get("url", "N/A")
-    ig_url = upload_results.get("Instagram", {}).get("url", "N/A")
+        # Final Status Summary
+        yt_url = (
+            upload_results.get("YouTube")
+            if isinstance(upload_results.get("YouTube"), str)
+            else upload_results.get("YouTube", {}).get("url", "N/A")
+        )
+        fb_url = upload_results.get("Facebook", {}).get("url", "N/A")
+        ig_url = upload_results.get("Instagram", {}).get("url", "N/A")
 
-    # Final Status Summary
-    yt_status = (
-        "✅ OK"
-        if yt_url != "N/A"
-        else "❌ Fail"
-        if "YouTube" in upload_results
-        else "⏭️ Skip"
-    )
-    fb_status = (
-        "✅ OK"
-        if fb_url != "N/A"
-        else "❌ Fail"
-        if "Facebook" in upload_results
-        else "⏭️ Skip"
-    )
-    ig_status = (
-        "✅ OK"
-        if ig_url != "N/A"
-        else "❌ Fail"
-        if "Instagram" in upload_results
-        else "⏭️ Skip"
-    )
+        # Get total uploads in 24h for stats
+        total_24h = get_upload_count_24h()
+        duration_str = get_video_duration(video_file)
+        elapsed = time.time() - start_time
 
-    # Escape HTML special characters
-    safe_title = (
-        content.get("title", "No Title")
-        .replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-    )
+        message = (
+            "🎉 <b>Video Processing Complete</b>\n\n"
+            f"📹 <b>Video:</b> {folder_name}\n"
+            f"⏱️ <b>Duration:</b> {duration_str}\n"
+            f"⏱️ <b>Process Time:</b> {elapsed:.1f}s\n"
+            f'📂 <b>Raw Drive:</b> <a href="https://drive.google.com/drive/folders/{folder_id}">Open Folder</a>\n\n'
+            "🚀 <b>Upload Links:</b>\n"
+            f"• <b>YouTube:</b> {yt_url}\n"
+            f"• <b>Instagram:</b> {ig_url}\n"
+            f"• <b>Facebook:</b> {fb_url}\n\n"
+            "📊 <b>Stats:</b>\n"
+            f"• Total 24h: {total_24h}/5 videos\n"
+            f"⏭️ <b>Next Run:</b> {get_next_scheduled_run()}"
+        )
 
-    elapsed = time.time() - start_time
-    # Get real duration from processed video
-    duration_str = get_video_duration(video_file)
+        logger.info("Sending Telegram report...")
+        result = send_telegram_report(message)
+        logger.info("Automation run finished successfully.")
 
-    # Get total uploads in 24h for stats
-    total_24h = get_upload_count_24h()
-
-    # Construct Premium Message
-    message = (
-        "🎉 <b>Video Processing Complete</b>\n\n"
-        f"📹 <b>Video:</b> {folder_name}\n"
-        f"⏱️ <b>Duration:</b> {duration_str}\n"
-        f"⏱️ <b>Process Time:</b> {elapsed:.1f}s\n"
-        f'📂 <b>Raw Drive:</b> <a href="https://drive.google.com/drive/folders/{folder_id}">Open Folder</a>\n\n'
-        "🚀 <b>Upload Links:</b>\n"
-        f"• <b>YouTube:</b> {yt_url}\n"
-        f"• <b>Instagram:</b> {ig_url}\n"
-        f"• <b>Facebook:</b> {fb_url}\n\n"
-        "📊 <b>Stats:</b>\n"
-        f"• Total 24h: {total_24h}/5 videos\n"
-        f"⏭️ <b>Next Run:</b> {get_next_scheduled_run()}"
-    )
-
-    # Commented out as requested by the user: "mujha nahi need hai"
-    # print("--- Telegram Message Debug ---")
-    # print(message)
-    # print("------------------------------")
-
-    response = send_telegram_report(message)
-    # logger.info(f"Telegram report sent. Response: {response}")
-    # logger.info(f"Automation complete in {elapsed:.2f}s")
+    except Exception as e:
+        logger.exception(f"CRITICAL ERROR in automation main loop: {e}")
+        try:
+            send_telegram_report(f"🚨 <b>Automation Crash:</b>\n\n<code>{str(e)}</code>")
+        except:
+            pass
 
 
 if __name__ == "__main__":
