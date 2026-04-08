@@ -4,6 +4,12 @@ on:
   schedule:
     - cron: '*/30 * * * *'
   workflow_dispatch:
+    inputs:
+      force_run:
+        description: 'Force run bypass schedule'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   automate:
@@ -54,6 +60,7 @@ jobs:
           ENABLE_YOUTUBE_UPLOAD: ${{ secrets.ENABLE_YOUTUBE_UPLOAD }}
           ENABLE_FACEBOOK_UPLOAD: ${{ secrets.ENABLE_FACEBOOK_UPLOAD }}
           ENABLE_INSTAGRAM_UPLOAD: ${{ secrets.ENABLE_INSTAGRAM_UPLOAD }}
+          FORCE_RUN: ${{ github.event.inputs.force_run || 'false' }}
         run: python main.py
 
       - name: Save State (Tracker & Logs)
