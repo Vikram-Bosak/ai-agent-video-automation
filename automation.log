@@ -1673,3 +1673,34 @@ ffmpeg._run.Error: ffmpeg error (see stderr output for detail)
 2026-04-08 20:54:35,510 - __main__ - INFO - Current ET: 16:54. Not in a valid upload window. Next run at 19:00 ET.
 2026-04-08 21:52:08,351 - __main__ - INFO - Current ET: 17:52. Not in a valid upload window. Next run at 19:00 ET.
 2026-04-08 22:51:31,762 - __main__ - INFO - Current ET: 18:51. Not in a valid upload window. Next run at 19:00 ET.
+2026-04-08 23:46:55,330 - __main__ - INFO - Current window: 19:00 ET
+2026-04-08 23:46:55,330 - __main__ - INFO - Searching for folder to process...
+2026-04-08 23:46:55,330 - __main__ - ERROR - CRITICAL ERROR in automation main loop: Expecting value: line 2 column 1 (char 1)
+Traceback (most recent call last):
+  File "/home/runner/work/ai-agent-video-automation/ai-agent-video-automation/main.py", line 238, in main
+    folder_id, folder_name = pick_next_folder()
+                             ^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/ai-agent-video-automation/ai-agent-video-automation/src/drive_manager.py", line 38, in pick_next_folder
+    service = get_drive_service()
+              ^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/ai-agent-video-automation/ai-agent-video-automation/src/drive_manager.py", line 24, in get_drive_service
+    creds = service_account.Credentials.from_service_account_file(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/google/oauth2/service_account.py", line 262, in from_service_account_file
+    info, signer = _service_account_info.from_filename(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/google/auth/_service_account_info.py", line 79, in from_filename
+    data = json.load(json_file)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 2 column 1 (char 1)
