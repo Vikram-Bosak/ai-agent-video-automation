@@ -34,16 +34,14 @@ jobs:
         run: pip install -r requirements.txt
       
       - name: Set up Google Service Account
-        env:
-          GOOGLE_SERVICE_ACCOUNT_FILE: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_FILE }}
         run: |
-          echo "$GOOGLE_SERVICE_ACCOUNT_FILE" > service_account.json
+          echo "${{ secrets.GOOGLE_SERVICE_ACCOUNT_FILE }}" > service_account.json
+          if [ ! -s service_account.json ]; then echo "Error: GOOGLE_SERVICE_ACCOUNT_FILE secret is empty or missing" && exit 1; fi
       
       - name: Set up YouTube OAuth
-        env:
-          YOUTUBE_TOKEN_FILE: ${{ secrets.YOUTUBE_TOKEN_FILE }}
         run: |
-          echo "$YOUTUBE_TOKEN_FILE" > youtube_token.json
+          echo "${{ secrets.YOUTUBE_TOKEN_FILE }}" > youtube_token.json
+          if [ ! -s youtube_token.json ]; then echo "Error: YOUTUBE_TOKEN_FILE secret is empty or missing" && exit 1; fi
       
       - name: Run automation
         env:
