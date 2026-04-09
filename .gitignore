@@ -12,7 +12,7 @@ downloads/
 output/
 temp_*.mp4
 
-automation.log
-upload_tracker.json
+# State tracking (Keep these in repo)
+!upload_tracker.json
 
 .DS_Store

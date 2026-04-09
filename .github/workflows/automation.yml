@@ -35,6 +35,15 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
       
+      - name: 🔍 Secret Diagnostics
+        run: |
+          echo "Checking available secret slots (Values are hidden)..."
+          if [ -n "${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}" ]; then echo "✅ GOOGLE_SERVICE_ACCOUNT_JSON found"; else echo "❌ GOOGLE_SERVICE_ACCOUNT_JSON missing"; fi
+          if [ -n "${{ secrets.GOOGLE_SERVICE_ACCOUNT_FILE }}" ]; then echo "✅ GOOGLE_SERVICE_ACCOUNT_FILE found"; else echo "❌ GOOGLE_SERVICE_ACCOUNT_FILE missing"; fi
+          if [ -n "${{ secrets.GOOGLE_CREDENTIALS }}" ]; then echo "✅ GOOGLE_CREDENTIALS found"; else echo "❌ GOOGLE_CREDENTIALS missing"; fi
+          if [ -n "${{ secrets.YOUTUBE_TOKEN_JSON }}" ]; then echo "✅ YOUTUBE_TOKEN_JSON found"; else echo "❌ YOUTUBE_TOKEN_JSON missing"; fi
+          if [ -n "${{ secrets.YOUTUBE_TOKEN_FILE }}" ]; then echo "✅ YOUTUBE_TOKEN_FILE found"; else echo "❌ YOUTUBE_TOKEN_FILE missing"; fi
+      
       - name: Set up Google Service Account
         env:
           SA_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON || secrets.GOOGLE_SERVICE_ACCOUNT_FILE || secrets.GOOGLE_CREDENTIALS }}
