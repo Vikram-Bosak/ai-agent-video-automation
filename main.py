@@ -254,7 +254,7 @@ def main():
 
         logger.info(f"Successfully downloaded {len(local_files)} files. Starting video processing...")
         video_file = process_video(local_files)
-        logger.info(f"Video processing complete: {video_file.name}")
+        logger.info(f"Video processing complete: {Path(video_file).name}")
 
         logger.info("Generating content metadata (SEO titles, descriptions)...")
         content = generate_content(folder_name)
