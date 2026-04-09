@@ -36,15 +36,19 @@ jobs:
         run: pip install -r requirements.txt
       
       - name: 🔍 Full Secret Diagnostics
+        env:
+          SA_JSON_VAL: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON || secrets.GOOGLE_SERVICE_ACCOUNT_FILE || secrets.GOOGLE_CREDENTIALS }}
+          YT_TOKEN_VAL: ${{ secrets.YOUTUBE_TOKEN_JSON || secrets.YOUTUBE_TOKEN_FILE || secrets.YOUTUBE_TOKEN }}
+          NVIDIA_VAL: ${{ secrets.NVIDIA_API_KEY }}
+          TELEGRAM_VAL: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          DRIVE_VAL: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
         run: |
           echo "Checking all secret slots (Values are hidden for security)..."
-          [ -n "${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}" ] && echo "✅ GOOGLE_SERVICE_ACCOUNT_JSON found" || echo "❌ GOOGLE_SERVICE_ACCOUNT_JSON missing"
-          [ -n "${{ secrets.GOOGLE_SERVICE_ACCOUNT_FILE }}" ] && echo "✅ GOOGLE_SERVICE_ACCOUNT_FILE found" || echo "❌ GOOGLE_SERVICE_ACCOUNT_FILE missing"
-          [ -n "${{ secrets.YOUTUBE_TOKEN_JSON }}" ] && echo "✅ YOUTUBE_TOKEN_JSON found" || echo "❌ YOUTUBE_TOKEN_JSON missing"
-          [ -n "${{ secrets.YOUTUBE_TOKEN_FILE }}" ] && echo "✅ YOUTUBE_TOKEN_FILE found" || echo "❌ YOUTUBE_TOKEN_FILE missing"
-          [ -n "${{ secrets.NVIDIA_API_KEY }}" ] && echo "✅ NVIDIA_API_KEY found" || echo "❌ NVIDIA_API_KEY missing"
-          [ -n "${{ secrets.TELEGRAM_BOT_TOKEN }}" ] && echo "✅ TELEGRAM_BOT_TOKEN found" || echo "❌ TELEGRAM_BOT_TOKEN missing"
-          [ -n "${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}" ] && echo "✅ GOOGLE_DRIVE_FOLDER_ID found" || echo "❌ GOOGLE_DRIVE_FOLDER_ID missing"
+          [ -n "$SA_JSON_VAL" ] && echo "✅ Google Service Account secret found" || echo "❌ Google Service Account secret missing"
+          [ -n "$YT_TOKEN_VAL" ] && echo "✅ YouTube Token secret found" || echo "❌ YouTube Token secret missing"
+          [ -n "$NVIDIA_VAL" ] && echo "✅ NVIDIA_API_KEY found" || echo "❌ NVIDIA_API_KEY missing"
+          [ -n "$TELEGRAM_VAL" ] && echo "✅ TELEGRAM_BOT_TOKEN found" || echo "❌ TELEGRAM_BOT_TOKEN missing"
+          [ -n "$DRIVE_VAL" ] && echo "✅ GOOGLE_DRIVE_FOLDER_ID found" || echo "❌ GOOGLE_DRIVE_FOLDER_ID missing"
           echo "------------------------------------------------"
           echo "NOTE: If you see ❌, the automation WILL FAIL."
           echo "Go to Settings > Secrets and variables > Actions to fix!"
