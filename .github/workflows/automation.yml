@@ -35,14 +35,19 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
       
-      - name: 🔍 Secret Diagnostics
+      - name: 🔍 Full Secret Diagnostics
         run: |
-          echo "Checking available secret slots (Values are hidden)..."
-          if [ -n "${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}" ]; then echo "✅ GOOGLE_SERVICE_ACCOUNT_JSON found"; else echo "❌ GOOGLE_SERVICE_ACCOUNT_JSON missing"; fi
-          if [ -n "${{ secrets.GOOGLE_SERVICE_ACCOUNT_FILE }}" ]; then echo "✅ GOOGLE_SERVICE_ACCOUNT_FILE found"; else echo "❌ GOOGLE_SERVICE_ACCOUNT_FILE missing"; fi
-          if [ -n "${{ secrets.GOOGLE_CREDENTIALS }}" ]; then echo "✅ GOOGLE_CREDENTIALS found"; else echo "❌ GOOGLE_CREDENTIALS missing"; fi
-          if [ -n "${{ secrets.YOUTUBE_TOKEN_JSON }}" ]; then echo "✅ YOUTUBE_TOKEN_JSON found"; else echo "❌ YOUTUBE_TOKEN_JSON missing"; fi
-          if [ -n "${{ secrets.YOUTUBE_TOKEN_FILE }}" ]; then echo "✅ YOUTUBE_TOKEN_FILE found"; else echo "❌ YOUTUBE_TOKEN_FILE missing"; fi
+          echo "Checking all secret slots (Values are hidden for security)..."
+          [ -n "${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}" ] && echo "✅ GOOGLE_SERVICE_ACCOUNT_JSON found" || echo "❌ GOOGLE_SERVICE_ACCOUNT_JSON missing"
+          [ -n "${{ secrets.GOOGLE_SERVICE_ACCOUNT_FILE }}" ] && echo "✅ GOOGLE_SERVICE_ACCOUNT_FILE found" || echo "❌ GOOGLE_SERVICE_ACCOUNT_FILE missing"
+          [ -n "${{ secrets.YOUTUBE_TOKEN_JSON }}" ] && echo "✅ YOUTUBE_TOKEN_JSON found" || echo "❌ YOUTUBE_TOKEN_JSON missing"
+          [ -n "${{ secrets.YOUTUBE_TOKEN_FILE }}" ] && echo "✅ YOUTUBE_TOKEN_FILE found" || echo "❌ YOUTUBE_TOKEN_FILE missing"
+          [ -n "${{ secrets.NVIDIA_API_KEY }}" ] && echo "✅ NVIDIA_API_KEY found" || echo "❌ NVIDIA_API_KEY missing"
+          [ -n "${{ secrets.TELEGRAM_BOT_TOKEN }}" ] && echo "✅ TELEGRAM_BOT_TOKEN found" || echo "❌ TELEGRAM_BOT_TOKEN missing"
+          [ -n "${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}" ] && echo "✅ GOOGLE_DRIVE_FOLDER_ID found" || echo "❌ GOOGLE_DRIVE_FOLDER_ID missing"
+          echo "------------------------------------------------"
+          echo "NOTE: If you see ❌, the automation WILL FAIL."
+          echo "Go to Settings > Secrets and variables > Actions to fix!"
       
       - name: Set up Google Service Account
         env:
