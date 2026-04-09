@@ -28,24 +28,55 @@ Description Tips:
 - Must feel like a high-value summary of the video.
 """
 
-def generate_content(folder_name):
-    # Strip common prefixes
-    clean_name = folder_name
-    for p in ["TODO_", "TODO ", "FIX_"]:
-        if clean_name.upper().startswith(p.upper()):
-            clean_name = clean_name[len(p):].strip()
 
-    # Default Viral Fallback
-    fallback = {
-        "title": f"The Truth About {clean_name}! 😱",
-        "description": f"Ever wondered how {clean_name} actually works? This 3D simulation reveals the secret! Watch until the end to see the full breakdown.",
-        "hashtags": f"#Shorts #3DBreakdown #HowItWorks #Science #Animation #{clean_name.replace(' ', '')}",
-        "tags": f"The 3D Breakdown, 3D animation, {clean_name}, science, education, how it works"
+def _generate_with_gemini(clean_name):
+    """Try generating content using Google Gemini API."""
+    if not config.GEMINI_API_KEY:
+        return None
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={config.GEMINI_API_KEY}"
+
+    payload = {
+        "system_instruction": {
+            "parts": [{"text": SYSTEM_PROMPT}]
+        },
+        "contents": [{
+            "parts": [{
+                "text": f"Topic: {clean_name}\nGenerate viral, curiosity-driven SEO for this 3D simulation."
+            }]
+        }],
+        "generationConfig": {
+            "temperature": 0.8,
+            "maxOutputTokens": 512,
+        }
     }
 
+    try:
+        response = requests.post(url, json=payload, timeout=30)
+        response.raise_for_status()
+        result = response.json()
+
+        text = result["candidates"][0]["content"]["parts"][0]["text"]
+
+        # Clean JSON from markdown blocks
+        if "```" in text:
+            text = text.split("```")[1]
+            if text.startswith("json"):
+                text = text[4:]
+
+        content = json.loads(text.strip())
+        logger.info("Generated content via Gemini API.")
+        return content
+
+    except Exception as e:
+        logger.warning(f"Gemini API failed: {e}")
+        return None
+
+
+def _generate_with_nvidia(clean_name):
+    """Try generating content using NVIDIA Llama API."""
     if not config.NVIDIA_API_KEY:
-        logger.warning("NVIDIA_API_KEY not set, using viral fallback")
-        return fallback
+        return None
 
     invoke_url = "https://integrate.api.nvidia.com/v1/chat/completions"
     headers = {
@@ -53,13 +84,11 @@ def generate_content(folder_name):
         "Accept": "application/json",
     }
 
-    prompt = f"Topic: {clean_name}\nGenerate viral, curiosity-driven SEO for this 3D simulation."
-
     payload = {
         "model": "meta/llama-3.1-405b-instruct",
         "messages": [
             {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": prompt},
+            {"role": "user", "content": f"Topic: {clean_name}\nGenerate viral, curiosity-driven SEO for this 3D simulation."},
         ],
         "max_tokens": 512,
         "temperature": 0.8,
@@ -79,27 +108,63 @@ def generate_content(folder_name):
             json_str = json_str.split("```")[1]
             if json_str.startswith("json"):
                 json_str = json_str[4:]
-        
+
         content = json.loads(json_str.strip())
-        logger.info(f"Generated VIRAL SEO content successfully.")
-
-        # Ensure description includes hashtags for platforms that don't use them separately
-        desc = content.get("description", "")
-        tags = content.get("hashtags", "")
-        if tags and tags not in desc:
-            desc = f"{desc}\n\n{tags}"
-
-        return {
-            "title": content.get("title", fallback["title"]),
-            "description": desc,
-            "tags": content.get("tags", fallback["tags"]),
-            "hashtags": tags or fallback["hashtags"]
-        }
+        logger.info("Generated content via NVIDIA API.")
+        return content
 
     except Exception as e:
-        logger.warning(f"Failed to generate AI SEO (using fallback): {e}")
-        # Even the fallback should have hashtags in description
-        fb_desc = fallback["description"]
-        fb_tags = fallback["hashtags"]
-        fallback["description"] = f"{fb_desc}\n\n{fb_tags}"
-        return fallback
+        logger.warning(f"NVIDIA API failed: {e}")
+        return None
+
+
+def generate_content(folder_name):
+    """
+    Generates SEO content using AI (Gemini first, then NVIDIA, then fallback).
+    """
+    # Strip common prefixes
+    clean_name = folder_name
+    for p in ["TODO_", "TODO ", "FIX_"]:
+        if clean_name.upper().startswith(p.upper()):
+            clean_name = clean_name[len(p):].strip()
+
+    # Default Viral Fallback
+    fallback = {
+        "title": f"The Truth About {clean_name}! 😱",
+        "description": f"Ever wondered how {clean_name} actually works? This 3D simulation reveals the secret! Watch until the end to see the full breakdown.",
+        "hashtags": f"#Shorts #3DBreakdown #HowItWorks #Science #Animation #{clean_name.replace(' ', '')}",
+        "tags": f"The 3D Breakdown, 3D animation, {clean_name}, science, education, how it works"
+    }
+
+    # Try Gemini first (fast, free tier available)
+    content = _generate_with_gemini(clean_name)
+    if content:
+        return _normalize_content(content, fallback)
+
+    # Try NVIDIA as fallback
+    content = _generate_with_nvidia(clean_name)
+    if content:
+        return _normalize_content(content, fallback)
+
+    # All AI failed — use viral fallback
+    logger.warning("All AI content generation failed. Using viral fallback.")
+    fallback["description"] = f"{fallback['description']}\n\n{fallback['hashtags']}"
+    return fallback
+
+
+def _normalize_content(content, fallback):
+    """
+    Normalize AI-generated content to ensure all required fields exist.
+    """
+    # Ensure description includes hashtags for platforms that don't use them separately
+    desc = content.get("description", "")
+    tags = content.get("hashtags", "")
+    if tags and tags not in desc:
+        desc = f"{desc}\n\n{tags}"
+
+    return {
+        "title": content.get("title", fallback["title"]),
+        "description": desc,
+        "tags": content.get("tags", fallback["tags"]),
+        "hashtags": tags or fallback["hashtags"],
+    }

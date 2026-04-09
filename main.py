@@ -130,34 +130,39 @@ def record_upload(window_name=None):
 
 def get_video_duration(file_path):
     try:
-        import ffmpeg
-
-        probe = ffmpeg.probe(str(file_path))
-        video_stream = next(
-            (stream for stream in probe["streams"] if stream["codec_type"] == "video"),
-            None,
-        )
-        if video_stream:
-            duration = float(video_stream["duration"])
-            return f"{int(duration // 60)}m {int(duration % 60)}s"
+        import subprocess
+        cmd = [
+            "ffprobe", "-v", "error",
+            "-select_streams", "v:0",
+            "-show_entries", "stream=duration",
+            "-of", "csv=p=0",
+            str(file_path),
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        duration = float(result.stdout.strip())
+        return f"{int(duration // 60)}m {int(duration % 60)}s"
     except Exception as e:
         logger.error(f"Error getting duration: {e}")
     return "Unknown"
 
 
 def get_est_now():
+    """
+    Returns the current hour and minute in US Eastern Time.
+    Properly handles DST (EDT/EST) using pytz.
+    """
     import datetime
     import pytz
 
     try:
-        # Use pytz for US Eastern Time
         tz = pytz.timezone("US/Eastern")
         now = datetime.datetime.now(tz)
+        logger.debug(f"Server time offset: {datetime.datetime.now().astimezone().utcoffset()}, ET offset: {now.utcoffset()}")
         return now.hour, now.minute
-    except:
-        # Fallback to UTC-5 (Approximate for ET)
+    except Exception as e:
+        logger.warning(f"pytz failed, using UTC-5 fallback: {e}")
         utc_now = time.gmtime()
-        # UTC to ET is -5 hours
+        # Rough UTC-5 fallback (won't handle DST correctly)
         total_minutes = utc_now.tm_hour * 60 + utc_now.tm_min - 5 * 60
         et_hour = (total_minutes // 60) % 24
         et_min = total_minutes % 60
@@ -166,27 +171,29 @@ def get_est_now():
 
 def is_in_upload_window():
     """
-    Checks if current US Eastern time is within one of the 5 windows:
-    1. 08:30 (Morning)
-    2. 12:30 (Lunch)
-    3. 15:30 (Afternoon)
-    4. 19:00 (Prime)
-    5. 21:30 (Late Night)
+    Checks if current US Eastern time is within one of the 5 upload windows.
+    Each window lasts 60 minutes from the start time.
+    
+    Windows (US Eastern):
+    1. 08:00 - 09:00 (Morning)
+    2. 12:30 - 13:30 (Lunch)
+    3. 15:30 - 16:30 (Afternoon)
+    4. 19:00 - 20:00 (Prime)
+    5. 21:30 - 22:30 (Late Night)
     """
     h, m = get_est_now()
     windows = [(8, 0), (12, 30), (15, 30), (19, 0), (21, 30)]
 
+    current_m = h * 60 + m
+
     for wh, wm in windows:
-        # Start time in minutes
         start_m = wh * 60 + wm
-        # End time (1 hour later window)
         end_m = start_m + 60
-        # Current time in minutes
-        current_m = h * 60 + m
 
         if start_m <= current_m < end_m:
             return True, f"{wh:02d}:{wm:02d} ET"
 
+    logger.debug(f"Current ET: {h:02d}:{m:02d}. No matching window.")
     return False, None
 
 
@@ -207,12 +214,12 @@ def main():
     config.DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
     config.OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    # logger.info("Starting video automation system")
-
     # Check for bypass flag
-    import os
-
     bypass = os.getenv("FORCE_RUN", "false").lower() == "true"
+
+    # Log current ET time for debugging
+    et_h, et_m = get_est_now()
+    logger.info(f"Current US Eastern Time: {et_h:02d}:{et_m:02d}")
 
     # Rate Limit Check
     upload_count = get_upload_count_24h()
@@ -222,9 +229,8 @@ def main():
 
     # Time Window Check
     in_window, window_name = is_in_upload_window()
-    h, m = get_est_now()
     if not in_window and not bypass:
-        logger.info(f"Current ET: {h:02d}:{m:02d}. Not in a valid upload window. Next run at {get_next_scheduled_run()}.")
+        logger.info(f"Not in a valid upload window. Next run at {get_next_scheduled_run()}.")
         return
 
     if in_window:
@@ -265,7 +271,7 @@ def main():
             logger.info("Initiating YouTube upload...")
             try:
                 yt_result = upload_youtube(str(video_file), content)
-                upload_results["YouTube"] = yt_result
+                upload_results["YouTube"] = {"success": True, "url": yt_result}
                 logger.info("YouTube upload complete.")
             except Exception as e:
                 logger.error(f"YouTube upload failed: {e}")
@@ -317,9 +323,9 @@ def main():
 
         # Final Status Summary
         yt_url = (
-            upload_results.get("YouTube")
-            if isinstance(upload_results.get("YouTube"), str)
-            else upload_results.get("YouTube", {}).get("url", "N/A")
+            upload_results.get("YouTube", {}).get("url", "N/A")
+            if isinstance(upload_results.get("YouTube"), dict)
+            else (upload_results.get("YouTube") or "N/A")
         )
         fb_url = upload_results.get("Facebook", {}).get("url", "N/A")
         ig_url = upload_results.get("Instagram", {}).get("url", "N/A")
