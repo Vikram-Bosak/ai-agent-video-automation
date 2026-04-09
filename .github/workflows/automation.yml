@@ -40,7 +40,7 @@ jobs:
           SA_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON || secrets.GOOGLE_SERVICE_ACCOUNT_FILE || secrets.GOOGLE_CREDENTIALS }}
         run: |
           if [ -n "$SA_JSON" ]; then
-            echo "$SA_JSON" > service_account.json
+            python -c "import os; open('service_account.json', 'w').write(os.environ.get('SA_JSON', ''))"
             echo "✅ Google Service Account created from secret."
           elif [ -f service_account.json ]; then
             echo "⚠️ Secret not found, using existing service_account.json from repository."
@@ -48,7 +48,6 @@ jobs:
             echo "❌ ERROR: No service account found in secrets or repository!"
             exit 1
           fi
-          # Check if JSON is valid to catch issues early
           python -c "import json; json.load(open('service_account.json'))" || (echo "❌ ERROR: Invalid JSON in service_account.json" && exit 1)
       
       - name: Set up YouTube OAuth
@@ -56,12 +55,12 @@ jobs:
           YT_JSON: ${{ secrets.YOUTUBE_TOKEN_JSON || secrets.YOUTUBE_TOKEN_FILE || secrets.YOUTUBE_TOKEN }}
         run: |
           if [ -n "$YT_JSON" ]; then
-            echo "$YT_JSON" > youtube_token.json
+            python -c "import os; open('youtube_token.json', 'w').write(os.environ.get('YT_JSON', ''))"
             echo "✅ YouTube Token created from secret."
           elif [ -f youtube_token.json ]; then
             echo "⚠️ Secret not found, using existing youtube_token.json from repository."
           else
-            echo "⚠️ WARNING: No YouTube token found. YouTube upload may fail."
+            echo "⚠️ WARNING: No YouTube token found."
           fi
           if [ -f youtube_token.json ]; then
             python -c "import json; json.load(open('youtube_token.json'))" || (echo "❌ ERROR: Invalid JSON in youtube_token.json" && rm youtube_token.json)
