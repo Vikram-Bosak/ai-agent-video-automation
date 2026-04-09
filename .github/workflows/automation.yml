@@ -2,7 +2,7 @@ name: Video Automation
 
 on:
   schedule:
-    - cron: '*/30 * * * *'
+    - cron: '30 12,16,19,23,1 * * *'  # 08:30, 12:30, 15:30, 19:00, 21:30 ET (converted to UTC)
   workflow_dispatch:
     inputs:
       force_run:
