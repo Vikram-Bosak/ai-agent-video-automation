@@ -1767,3 +1767,4 @@ Traceback (most recent call last):
                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 ValueError: Unable to load PEM file. See https://cryptography.io/en/latest/faq/#why-can-t-i-import-my-pem-file for more details. InvalidData(InvalidPadding)
 2026-04-09 02:54:35,445 - __main__ - INFO - Current ET: 22:54. Not in a valid upload window. Next run at 08:00 ET (Tomorrow).
+2026-04-09 05:19:34,490 - __main__ - INFO - Current ET: 01:19. Not in a valid upload window. Next run at 08:00 ET.
