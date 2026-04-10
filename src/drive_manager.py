@@ -354,10 +354,14 @@ def mark_folder_processed(folder_id, folder_name):
         logger.error("DONE_FOLDER_ID is not configured! Cannot move folder.")
         return
 
-    # 1. Rename the folder (Remove TODO_ and add DONE_)
+    # 1. Rename the folder (add DONE_ prefix)
+    # No need to remove TODO_ prefix - just add DONE_ to whatever name exists
     clean_name = folder_name
-    if clean_name.upper().startswith(DRIVE_FOLDER_PREFIX.upper()):
-        clean_name = clean_name[len(DRIVE_FOLDER_PREFIX):]
+    # Remove TODO_ or DONE_ prefix if exists (to avoid double prefixing)
+    for prefix in [DRIVE_FOLDER_PREFIX, PROCESSED_FOLDER_PREFIX, "TODO_", "DONE_", "ERROR_"]:
+        if clean_name.upper().startswith(prefix.upper()):
+            clean_name = clean_name[len(prefix):]
+            break
 
     new_name = f"{PROCESSED_FOLDER_PREFIX}{clean_name}"
 
