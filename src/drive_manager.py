@@ -20,6 +20,12 @@ SCOPES = ["https://www.googleapis.com/auth/drive"]
 logger = logging.getLogger(__name__)
 
 
+def natural_sort_key(s):
+    """Natural sort key for handling numeric filenames correctly."""
+    return [int(text) if text.isdigit() else text.lower()
+            for text in re.split(r'(\d+)', s)]
+
+
 def _repair_service_account_file(filepath):
     """
     Repairs a service account JSON file that has corrupted PEM private keys.
@@ -321,9 +327,9 @@ def download_folder_files(folder_id):
     os.makedirs(DOWNLOAD_DIR, exist_ok=True)
     local_files = []
 
-    for idx, f in enumerate(files):
+    for f in files:
         request = service.files().get_media(fileId=f["id"])
-        local_filepath = os.path.join(DOWNLOAD_DIR, f"{idx}_{f['name']}")
+        local_filepath = os.path.join(DOWNLOAD_DIR, f["name"])
 
         with io.FileIO(local_filepath, "wb") as fh:
             downloader = MediaIoBaseDownload(fh, request)
@@ -333,8 +339,8 @@ def download_folder_files(folder_id):
 
         local_files.append(local_filepath)
 
-    # Sort files just in case we need a specific order (e.g. by name)
-    return sorted(local_files)
+    # Sort files naturally to handle numeric filenames correctly
+    return sorted(local_files, key=natural_sort_key)
 
 
 def mark_folder_processed(folder_id, folder_name):

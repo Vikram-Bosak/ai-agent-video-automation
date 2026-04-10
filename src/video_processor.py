@@ -2,10 +2,17 @@ import os
 import json
 import subprocess
 import logging
+import re
 import config
 from config import OUTPUT_DIR
 
 logger = logging.getLogger(__name__)
+
+
+def natural_sort_key(s):
+    """Natural sort key for handling numeric filenames correctly."""
+    return [int(text) if text.isdigit() else text.lower()
+            for text in re.split(r'(\d+)', s)]
 
 
 def get_video_info(file_path):
@@ -120,7 +127,8 @@ def process_video(input_files):
         raise ValueError("No input files provided.")
 
     video_files = sorted(
-        [f for f in input_files if f.lower().endswith((".mp4", ".mov", ".mkv"))]
+        [f for f in input_files if f.lower().endswith((".mp4", ".mov", ".mkv"))],
+        key=natural_sort_key
     )
     audio_files = [f for f in input_files if f.lower().endswith((".wav", ".mp3"))]
     voiceover_path = audio_files[0] if audio_files else None
